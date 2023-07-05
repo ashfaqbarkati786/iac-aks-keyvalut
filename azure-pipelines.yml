@@ -43,8 +43,12 @@ stages:
 
 
     
-    - script: |
-          az aks get-credentials --resource-group Final-Project --name aks --overwrite-existing
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'arm'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: 'az aks get-credentials --resource-group Final-Project --name aks --overwrite-existing'
       displayName: 'Get AKS Cluster Credentials'
       
     - script: |
