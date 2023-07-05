@@ -16,8 +16,8 @@ stages:
     - checkout: self
 
     - script: |
-        docker build -t ashfaqbarkati786/key:$(Build.BuildId) -f Dockerfile .
-        docker push ashfaqbarkati786/key:$(Build.BuildId)
+        sudo docker build -t ashfaqbarkati786/key:$(Build.BuildId) -f Dockerfile .
+        sudo docker push ashfaqbarkati786/key:$(Build.BuildId)
       displayName: 'Build and Push Docker Image'
     
 
