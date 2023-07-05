@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+      - name: webapp
+        image: ashfaqbarkati786/key:${IMAGE_TAG}
+        ports:
+        - containerPort: 80
+          name: webapp
+        env:
+        - name: DB_HOST
+          value: db-deployment
+        - name: DB_PORT
+          value: "3306"
+        - name: DB_NAME
+          value: sampledb
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: user-password
+        volumeMounts:
+        - name: secrets-store
+          mountPath: /mnt/secrets-store
+      volumes:
+      - name: secrets-store
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: azure-kvname

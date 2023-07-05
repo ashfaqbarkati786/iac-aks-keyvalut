@@ -1,0 +1,66 @@
+trigger:
+  branches:
+    include:
+      - master
+
+pr: none
+pool: default
+
+stages:
+- stage: Build
+  displayName: 'Build Docker image'
+  jobs:
+  - job: BuildJob
+    displayName: 'Build and Push'
+    steps:
+    - checkout: self
+
+    - script: |
+        docker build -t ashfaqbarkati786/key:$(Build.BuildId) -f Dockerfile .
+        docker push ashfaqbarkati786/key:$(Build.BuildId)
+      displayName: 'Build and Push Docker Image'
+    
+
+- stage: Deploy
+  displayName: 'Deploy Infrastructure'
+  dependsOn: Build
+  jobs:
+  - job: TerraformJob
+    displayName: 'Terraform Deployment'
+    steps:
+    - checkout: self
+
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'arm'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          cd $(Build.SourcesDirectory)/terraformfiles
+          terraform init    
+          terraform plan -lock=false
+          terraform apply -auto-approve -lock=false
+
+
+    
+    - script: |
+          az aks get-credentials --resource-group Final-Project --name aks --overwrite-existing
+      displayName: 'Get AKS Cluster Credentials'
+      
+    - script: |
+        kubectl get nodes
+      displayName: 'Verify AKS Cluster Connection'
+
+
+    - script: |
+        export IMAGE_TAG=$(Build.BuildId)
+        envsubst '${IMAGE_TAG}' < deployments/webapp-deployment.yaml > deployments/webapp-deployment-modified.yaml
+        kubectl apply -f deployments/webapp-deployment-modified.yaml
+        kubectl apply -f deployments/secretsproviderclass.yaml
+        kubectl apply -f deployments/webapp-service.yaml
+        kubectl apply -f deployments/db-deployment.yaml
+        kubectl apply -f deployments/db-service.yaml
+      displayName: 'Replace Environment Variables & Deploy to AKS Cluster'
+
+    
+
